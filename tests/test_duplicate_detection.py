@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 import pytest
-from app.duplicate_detection import DuplicateDetector, perceptual_hash_similarity
+from app.duplicate_detection import DuplicateDetector
 from app.models import DuplicateStatus, ReportCategory
 
 
@@ -20,11 +20,6 @@ def candidate(
     return SimpleNamespace(
         report=report, vector_similarity=vector_similarity, distance_meters=distance_meters
     )
-
-
-def test_perceptual_hash_similarity() -> None:
-    assert perceptual_hash_similarity("ffffffffffffffff", "ffffffffffffffff") == 1.0
-    assert perceptual_hash_similarity("0000000000000000", "ffffffffffffffff") == 0.0
 
 
 @pytest.mark.asyncio

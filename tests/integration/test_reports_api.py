@@ -113,7 +113,7 @@ async def test_exact_duplicate_reuses_existing_image_url(
 async def test_add_supporting_evidence(api_client: httpx.AsyncClient, sample_image: bytes) -> None:
     parent = await submit_report(api_client, sample_image)
     other_image = io.BytesIO()
-    Image.new("RGB", (64, 64), (130, 85, 35)).save(other_image, format="PNG")
+    Image.new("RGB", (64, 64), (32, 92, 188)).save(other_image, format="PNG")
 
     response = await api_client.post(
         f"/api/v1/reports/{parent['id']}/supporting-evidence",

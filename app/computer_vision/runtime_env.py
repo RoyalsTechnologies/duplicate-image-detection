@@ -6,11 +6,10 @@ import logging
 import os
 from pathlib import Path
 
+from app.computer_vision.constants import MIN_YOLO_WEIGHTS_BYTES
 from app.config import settings
 
 logger = logging.getLogger(__name__)
-
-MIN_YOLO_BYTES = 1_000_000
 
 
 def _ensure_dir(path: Path) -> None:
@@ -66,10 +65,10 @@ def log_cv_cache_status() -> None:
             "(docker compose build api && docker compose up -d api)",
             hf_hub,
         )
-    if provider == "yolov11" and yolo_bytes < MIN_YOLO_BYTES:
+    if provider == "yolov11" and yolo_bytes < MIN_YOLO_WEIGHTS_BYTES:
         logger.warning(
             "YOLO weights missing or incomplete at %s (%s bytes); expected >= %s",
             yolo_path,
             yolo_bytes,
-            MIN_YOLO_BYTES,
+            MIN_YOLO_WEIGHTS_BYTES,
         )

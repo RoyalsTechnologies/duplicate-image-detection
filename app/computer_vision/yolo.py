@@ -6,9 +6,8 @@ from typing import Any
 from PIL import Image
 
 from app.computer_vision.base import DetectedObject
+from app.computer_vision.constants import MIN_YOLO_WEIGHTS_BYTES
 from app.computer_vision.embedding import EmbeddingComputerVisionClient
-
-MIN_YOLO_WEIGHTS_BYTES = 1_000_000  # yolo11n.pt is ~5.5MB
 
 
 def _looks_like_corrupt_yolo_checkpoint(exc: BaseException) -> bool:

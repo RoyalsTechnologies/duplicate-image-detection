@@ -8,7 +8,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-class ObjectStorage:
+class LocalFileStorage:
     async def save_upload(self, upload: UploadFile, content: bytes) -> str:
         suffix = Path(upload.filename or "image.jpg").suffix.lower() or ".jpg"
         filename = f"{uuid4().hex}{suffix}"
@@ -37,4 +37,4 @@ class ObjectStorage:
             )
 
 
-storage = ObjectStorage()
+storage = LocalFileStorage()

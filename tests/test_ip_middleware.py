@@ -24,18 +24,13 @@ def make_request(host: str, headers: dict[str, str] | None = None) -> Request:
     )
 
 
-def test_health_imports() -> None:
-    from app.main import app
-
-    assert app.title
-
-
 def test_ignores_forwarded_headers_from_untrusted_clients() -> None:
     request = make_request("198.51.100.10", {"x-forwarded-for": "127.0.0.1"})
     assert get_client_ip(request) == "198.51.100.10"
 
 
-def test_trusts_forwarded_headers_only_from_trusted_proxy() -> None:
+def test_trusts_forwarded_headers_only_from_trusted_proxy(monkeypatch) -> None:
+    monkeypatch.setattr("app.middleware.settings.trusted_proxy_ips", "10.0.0.1")
     request = make_request("10.0.0.1", {"x-forwarded-for": "197.253.123.104, 10.0.0.1"})
     assert get_client_ip(request) == "197.253.123.104"
 

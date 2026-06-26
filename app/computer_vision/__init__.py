@@ -13,13 +13,8 @@ from app.computer_vision.labels import CONCERN_LABEL_TO_CATEGORY
 from app.computer_vision.local import LocalComputerVisionClient
 from app.computer_vision.yolo import YoloV11ComputerVisionClient
 
-# Backward-compatible alias used by existing tests and imports.
-ComputerVisionClient = LocalComputerVisionClient
-
 __all__ = [
     "BaseComputerVisionClient",
-    "ComputerVisionClient",
-    "DetectedObject",
     "EMBEDDING_DIM",
     "EmbeddingComputerVisionClient",
     "ImageAnalysis",
@@ -29,6 +24,7 @@ __all__ = [
     "YoloV11ComputerVisionClient",
     "build_cv_client",
     "CONCERN_LABEL_TO_CATEGORY",
+    "DetectedObject",
     "cosine_similarity",
     "cv_client",
     "perceptual_hash_similarity",

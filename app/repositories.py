@@ -72,7 +72,6 @@ class ReportRepository:
         longitude: float,
         embedding: list[float],
         radius_meters: int,
-        exclude_id: int | None = None,
     ) -> list[DuplicateCandidateRow]:
         since = utcnow() - timedelta(hours=settings.duplicate_time_window_hours)
         point = func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326)
@@ -93,8 +92,6 @@ class ReportRepository:
                 Report.image_embedding.is_not(None),
             )
         )
-        if exclude_id is not None:
-            stmt = stmt.where(Report.id != exclude_id)
         stmt = stmt.order_by(Report.image_embedding.cosine_distance(embedding)).limit(25)
         rows = (await self.db.execute(stmt)).all()
         return [

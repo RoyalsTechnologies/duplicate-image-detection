@@ -1,5 +1,7 @@
 import io
+from dataclasses import asdict
 from pathlib import Path
+
 from fastapi import UploadFile
 from geoalchemy2.functions import ST_MakePoint, ST_SetSRID
 from PIL import Image, UnidentifiedImageError
@@ -88,7 +90,7 @@ class ReportService:
                     perceptual_hash=perceptual_hash,
                     embedding=embedding,
                 )
-                detected_objects = [obj.__dict__ for obj in analysis.detected_objects]
+                detected_objects = [asdict(obj) for obj in analysis.detected_objects]
                 cv_inferred_category = (
                     analysis.inferred_category.value if analysis.inferred_category else None
                 )
@@ -226,8 +228,9 @@ class ReportService:
         image_bytes = await self._read_image(image)
         image_url: str | None = None
         try:
-            image_url = await storage.save_upload(image, image_bytes)
             supporting_analysis = cv_client.analyze(image_bytes)
+            self._ensure_relevant_concern_image(image_bytes, supporting_analysis)
+            image_url = await storage.save_upload(image, image_bytes)
             report = Report(
                 title=sanitize_text(payload.title) or payload.title,
                 description=sanitize_text(payload.description),
@@ -239,7 +242,7 @@ class ReportService:
                 image_sha256=sha256_bytes(image_bytes),
                 perceptual_hash=supporting_analysis.perceptual_hash,
                 image_embedding=supporting_analysis.embedding,
-                detected_objects=[obj.__dict__ for obj in supporting_analysis.detected_objects],
+                detected_objects=[asdict(obj) for obj in supporting_analysis.detected_objects],
                 cv_inferred_category=supporting_analysis.inferred_category.value
                 if supporting_analysis.inferred_category
                 else None,

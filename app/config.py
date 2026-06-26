@@ -16,16 +16,9 @@ class Settings(BaseSettings):
     trusted_proxy_ips: str = ""
     local_storage_dir: Path = Path("uploads")
     public_base_url: str = "http://localhost:8000"
-    s3_bucket: str | None = None
-    aws_region: str | None = None
     api_v1_prefix: str = "/api/v1"
     port: int = 8000
-    object_storage_bucket: str | None = None
-    object_storage_region: str | None = None
-    object_storage_access_key: str | None = None
-    object_storage_secret_key: str | None = None
     cv_provider: str = "local"
-    cv_api_key: str | None = None
     cv_device: str = "cpu"
     cv_embedding_model: str = "ViT-B-32"
     cv_embedding_pretrained: str = "openai"
@@ -39,7 +32,6 @@ class Settings(BaseSettings):
     duplicate_time_window_hours: int = 720
     duplicate_similarity_threshold: float = 0.86
     possible_duplicate_similarity_threshold: float = 0.68
-    perceptual_hash_high_similarity: float = 0.92
     perceptual_hash_possible_similarity: float = 0.75
     max_upload_size_mb: int = 10
     upload_rate_limit_per_minute: int = 20
@@ -51,14 +43,6 @@ class Settings(BaseSettings):
     @property
     def duplicate_possible_distance_meters(self) -> int:
         return self.duplicate_distance_meters
-
-    @property
-    def duplicate_high_confidence(self) -> float:
-        return self.duplicate_similarity_threshold
-
-    @property
-    def duplicate_possible_confidence(self) -> float:
-        return self.possible_duplicate_similarity_threshold
 
     @property
     def allowed_ip_ranges(self) -> list[str]:

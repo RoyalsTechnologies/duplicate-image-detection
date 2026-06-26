@@ -10,7 +10,7 @@ from pathlib import Path
 CACHE_ROOT = Path("/var/cache/did-backend-api")
 HF_HOME = CACHE_ROOT / "huggingface"
 DEFAULT_YOLO_DEST = CACHE_ROOT / "yolo11n.pt"
-MIN_YOLO_BYTES = 1_000_000
+MIN_YOLO_BYTES = 1_000_000  # keep in sync with app/computer_vision/constants.py
 YOLO11N_URL = "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo11n.pt"
 
 

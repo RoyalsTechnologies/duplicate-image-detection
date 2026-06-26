@@ -85,7 +85,7 @@ class DuplicateDetector:
 
         if (
             candidate.distance_meters <= settings.duplicate_exact_distance_meters
-            and visual_similarity >= settings.duplicate_high_confidence
+            and visual_similarity >= settings.duplicate_similarity_threshold
             and phash_similarity >= settings.perceptual_hash_possible_similarity
         ):
             return DuplicateDecision(
@@ -98,7 +98,7 @@ class DuplicateDetector:
 
         if (
             candidate.distance_meters <= settings.duplicate_possible_distance_meters
-            and visual_similarity >= settings.duplicate_possible_confidence
+            and visual_similarity >= settings.possible_duplicate_similarity_threshold
         ):
             return DuplicateDecision(
                 DuplicateStatus.possible_duplicate,
@@ -117,8 +117,8 @@ class DuplicateDetector:
     def same_physical_problem_likely(distance_meters: float, visual_similarity: float) -> bool:
         return (
             distance_meters <= settings.duplicate_exact_distance_meters
-            and visual_similarity >= settings.duplicate_high_confidence
+            and visual_similarity >= settings.duplicate_similarity_threshold
         ) or (
             distance_meters <= settings.duplicate_possible_distance_meters
-            and visual_similarity >= settings.duplicate_possible_confidence
+            and visual_similarity >= settings.possible_duplicate_similarity_threshold
         )

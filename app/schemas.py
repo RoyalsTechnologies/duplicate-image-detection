@@ -12,12 +12,6 @@ class ApiResponse(BaseModel, Generic[T]):
     data: T | None = None
 
 
-class ApiErrorResponse(BaseModel):
-    success: bool = False
-    message: str
-    errors: list[dict[str, object] | str] = Field(default_factory=list)
-
-
 class ReportCreate(BaseModel):
     title: str = Field(min_length=3, max_length=160)
     description: str | None = Field(default=None, max_length=5000)
@@ -59,11 +53,6 @@ class SupportingEvidenceCreate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
-
-
-class DuplicateCandidate(BaseModel):
-    report: ReportRead
-    confidence_score: float
 
 
 class DuplicateReviewRead(BaseModel):

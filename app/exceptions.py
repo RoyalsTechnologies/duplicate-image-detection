@@ -14,10 +14,6 @@ class BadRequestError(Exception):
     pass
 
 
-class ConflictError(Exception):
-    pass
-
-
 def _request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
 
@@ -41,10 +37,6 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BadRequestError)
     async def bad_request_handler(request: Request, exc: BadRequestError) -> JSONResponse:
         return _error(400, str(exc), request_id=_request_id(request))
-
-    @app.exception_handler(ConflictError)
-    async def conflict_handler(request: Request, exc: ConflictError) -> JSONResponse:
-        return _error(409, str(exc), request_id=_request_id(request))
 
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 import pytest
-from app.computer_vision import ImageAnalysis
+from app.computer_vision import DetectedObject, ImageAnalysis
 from app.models import DuplicateStatus, ReportCategory
 from app.schemas import ReportCreate
 from app.services import ReportService
@@ -133,10 +133,14 @@ async def test_new_upload_is_deleted_when_db_write_fails(monkeypatch):
         lambda _bytes: ImageAnalysis(
             perceptual_hash="abc",
             embedding=[0.0] * 512,
-            detected_objects=[],
-            inferred_category=None,
-            category_confidence=0.0,
+            detected_objects=[DetectedObject("garbage", 0.9)],
+            inferred_category=ReportCategory.refuse_dump,
+            category_confidence=0.9,
         ),
+    )
+    monkeypatch.setattr(
+        "app.services.cv_client.assess_relevance",
+        lambda analysis, image_bytes=None: SimpleNamespace(is_relevant=True),
     )
 
     with pytest.raises(RuntimeError):
