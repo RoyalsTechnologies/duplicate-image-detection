@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      context: .
+      target: ${DOCKER_BUILD_TARGET:-runtime}
+      args:
+        CV_EXTRAS: ${CV_EXTRAS:-}
+        CV_EMBEDDING_MODEL: ${CV_EMBEDDING_MODEL:-ViT-B-32}
+        CV_EMBEDDING_PRETRAINED: ${CV_EMBEDDING_PRETRAINED:-openai}
+        CV_YOLO_MODEL: ${CV_YOLO_MODEL:-/var/cache/did-backend-api/yolo11n.pt}
+    env_file:
+      - path: .env.example
+        required: true
+      - path: .env
+        required: false
+    ports:
+      - "8000:8000"
+    environment:
+      CV_CACHE_DIR: /var/cache/did-backend-api
+      HF_HOME: /var/cache/did-backend-api/huggingface
+      HUGGINGFACE_HUB_CACHE: /var/cache/did-backend-api/huggingface/hub
+      YOLO_CONFIG_DIR: /var/cache/did-backend-api/ultralytics
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./uploads:/app/uploads
+      - cv_ultralytics_config:/var/cache/did-backend-api/ultralytics
+    depends_on:
+      - postgres
+      - redis
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/alembic"
+
+  postgres:
+    build: ./docker/postgres
+    environment:
+      POSTGRES_DB: did
+      POSTGRES_USER: did
+      POSTGRES_PASSWORD: did
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  cv_ultralytics_config:

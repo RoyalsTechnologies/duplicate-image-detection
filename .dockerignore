@@ -1,0 +1,57 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+tests/
+
+# Runtime uploads (mounted as a volume in compose)
+uploads/
+test-uploads/
+
+# Git and IDE
+.git/
+.gitignore
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Credentials
+*.pem
+*.key
+credentials.json
+secrets.json
+.aws/
+
+# Logs
+*.log
+
+# Docker (not needed inside the image)
+docker-compose*.yml
+Dockerfile*

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report an environmental concern</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7f5;
+      --surface: #ffffff;
+      --text: #1a2e22;
+      --muted: #5c6f63;
+      --border: #d5e0d8;
+      --accent: #1f7a4d;
+      --accent-hover: #16633d;
+      --danger: #b42318;
+      --warning: #b54708;
+      --shadow: 0 10px 30px rgba(26, 46, 34, 0.08);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1712;
+        --surface: #162019;
+        --text: #e8f1eb;
+        --muted: #9db0a4;
+        --border: #2a3a30;
+        --accent: #3ecf8e;
+        --accent-hover: #2fb67a;
+        --danger: #f97066;
+        --warning: #fdb022;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #e8f5ec 0%, var(--bg) 240px);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: linear-gradient(180deg, #132018 0%, var(--bg) 240px); }
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2rem 1rem 3rem;
+    }
+    header { margin-bottom: 1.5rem; }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      letter-spacing: -0.02em;
+    }
+    .lead { margin: 0; color: var(--muted); max-width: 60ch; }
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 860px) {
+      .grid { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.05rem;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .field { margin-bottom: 1rem; }
+    input, select, textarea, button {
+      font: inherit;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    .coords {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .preview {
+      margin-top: 0.75rem;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .preview img {
+      max-width: 100%;
+      max-height: 280px;
+      display: block;
+    }
+    .preview-empty {
+      color: var(--muted);
+      font-size: 0.92rem;
+      padding: 1rem;
+      text-align: center;
+    }
+    .hidden { display: none !important; }
+    .status {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-new { background: #dcfae6; color: #067647; }
+    .status-duplicate { background: #fee4e2; color: #b42318; }
+    .status-possible_duplicate { background: #fef0c7; color: #b54708; }
+    .status-supporting_evidence { background: #e0eaff; color: #3538cd; }
+    @media (prefers-color-scheme: dark) {
+      .status-new { background: #053321; color: #75e0a7; }
+      .status-duplicate { background: #55160c; color: #fda29b; }
+      .status-possible_duplicate { background: #4e1d09; color: #fec84b; }
+      .status-supporting_evidence { background: #1e1f5c; color: #a4bcfd; }
+    }
+    .result-image {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+      background: var(--bg);
+    }
+    dl {
+      display: grid;
+      grid-template-columns: minmax(120px, 38%) 1fr;
+      gap: 0.55rem 1rem;
+      margin: 0;
+    }
+    dt {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    dd {
+      margin: 0;
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .tag {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.82rem;
+    }
+    .alert {
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .alert-error {
+      background: #fef3f2;
+      border: 1px solid #fecdca;
+      color: #b42318;
+    }
+    .alert-info {
+      background: #eff8ff;
+      border: 1px solid #b2ddff;
+      color: #175cd3;
+    }
+    @media (prefers-color-scheme: dark) {
+      .alert-error { background: #55160c; border-color: #912018; color: #fda29b; }
+      .alert-info { background: #102a56; border-color: #1849a9; color: #84caff; }
+    }
+    .placeholder {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    footer {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--accent); }
+    .form-card {
+      position: relative;
+    }
+    .loader-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: rgba(244, 247, 245, 0.88);
+      backdrop-filter: blur(4px);
+      text-align: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      .loader-overlay {
+        background: rgba(15, 23, 18, 0.88);
+      }
+    }
+    .loader-overlay.hidden {
+      display: none;
+    }
+    .loader-spinner {
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loader-text {
+      margin: 0;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .loader-subtext {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      max-width: 28ch;
+    }
+    .form-loading input,
+    .form-loading select,
+    .form-loading textarea,
+    .form-loading button {
+      pointer-events: none;
+      opacity: 0.55;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Report an environmental concern</h1>
+      <p class="lead">Upload a photo, pin the location, and submit a report. The system checks for duplicates and runs on-device image analysis.</p>
+    </header>
+
+    <div class="grid">
+      <section class="card form-card" id="form-card">
+        <h2>Submit report</h2>
+        <div id="submit-loader" class="loader-overlay hidden" aria-live="polite" aria-busy="false">
+          <div class="loader-spinner" role="status" aria-label="Loading"></div>
+          <p class="loader-text">Submitting report…</p>
+          <p class="loader-subtext">Analyzing the photo and checking for duplicates. This usually takes a few seconds.</p>
+        </div>
+        <form id="report-form">
+          <div class="field">
+            <label for="title">Title</label>
+            <input id="title" name="title" required minlength="3" maxlength="160" placeholder="Flooded gutter on Main Street">
+          </div>
+
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category" required>
+              <option value="flooding">Flooding</option>
+              <option value="refuse_dump">Refuse dump</option>
+              <option value="blocked_drain">Blocked drain</option>
+              <option value="pothole">Pothole</option>
+              <option value="pollution">Pollution</option>
+              <option value="broken_public_facility">Broken public facility</option>
+              <option value="sanitation">Sanitation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" maxlength="5000" placeholder="Describe what you observed"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Location</label>
+            <div class="coords">
+              <input id="latitude" name="latitude" type="number" step="any" required placeholder="Latitude" value="5.6037">
+              <input id="longitude" name="longitude" type="number" step="any" required placeholder="Longitude" value="-0.1870">
+            </div>
+            <div class="btn-row" style="margin-top: 0.75rem;">
+              <button type="button" class="btn-secondary" id="use-location">Use my location</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="image">Photo</label>
+            <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <div class="preview" id="preview">
+              <div class="preview-empty" id="preview-empty">Choose a JPEG, PNG, or WebP image to preview</div>
+              <img id="preview-image" class="hidden" alt="Selected photo preview">
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button type="submit" class="btn-primary" id="submit-btn">Submit report</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Result</h2>
+        <div id="result-placeholder" class="placeholder">Submit a report to see analysis and duplicate detection results here.</div>
+        <div id="result-error" class="alert alert-error hidden"></div>
+        <div id="result-panel" class="hidden">
+          <div id="result-message" class="alert alert-info hidden"></div>
+          <img id="result-image" class="result-image hidden" alt="Uploaded report photo">
+          <dl id="result-details"></dl>
+          <div class="field hidden" id="objects-wrap">
+            <label>Detected objects</label>
+            <div class="tags" id="detected-objects"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      API docs: <a href="/docs">/docs</a>
+    </footer>
+  </div>
+
+  <script>
+    const form = document.getElementById('report-form');
+    const imageInput = document.getElementById('image');
+    const previewImage = document.getElementById('preview-image');
+    const previewEmpty = document.getElementById('preview-empty');
+    const submitBtn = document.getElementById('submit-btn');
+    const resultPlaceholder = document.getElementById('result-placeholder');
+    const resultPanel = document.getElementById('result-panel');
+    const resultError = document.getElementById('result-error');
+    const resultMessage = document.getElementById('result-message');
+    const resultImage = document.getElementById('result-image');
+    const resultDetails = document.getElementById('result-details');
+    const objectsWrap = document.getElementById('objects-wrap');
+    const detectedObjects = document.getElementById('detected-objects');
+    const useLocationBtn = document.getElementById('use-location');
+    const formCard = document.getElementById('form-card');
+    const submitLoader = document.getElementById('submit-loader');
+
+    let previewUrl = null;
+
+    function setSubmitting(isSubmitting) {
+      submitBtn.disabled = isSubmitting;
+      submitBtn.textContent = isSubmitting ? 'Submitting…' : 'Submit report';
+      formCard.classList.toggle('form-loading', isSubmitting);
+      submitLoader.classList.toggle('hidden', !isSubmitting);
+      submitLoader.setAttribute('aria-busy', isSubmitting ? 'true' : 'false');
+    }
+
+    function formatLabel(value) {
+      return String(value || '').replaceAll('_', ' ');
+    }
+
+    function formatPercent(value) {
+      if (value === null || value === undefined) return '—';
+      return `${Math.round(Number(value) * 1000) / 10}%`;
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      return new Date(value).toLocaleString();
+    }
+
+    function clearResult() {
+      resultPlaceholder.classList.add('hidden');
+      resultError.classList.add('hidden');
+      resultPanel.classList.add('hidden');
+      resultMessage.classList.add('hidden');
+      resultImage.classList.add('hidden');
+      objectsWrap.classList.add('hidden');
+      resultDetails.innerHTML = '';
+      detectedObjects.innerHTML = '';
+    }
+
+    function showError(message, errors = []) {
+      clearResult();
+      resultError.classList.remove('hidden');
+      const extra = errors.length
+        ? `<ul>${errors.map((item) => `<li>${typeof item === 'string' ? item : JSON.stringify(item)}</li>`).join('')}</ul>`
+        : '';
+      resultError.innerHTML = `<strong>${message}</strong>${extra}`;
+    }
+
+    function addDetail(label, value, html = false) {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      if (html) {
+        dd.innerHTML = value;
+      } else {
+        dd.textContent = value;
+      }
+      resultDetails.appendChild(dt);
+      resultDetails.appendChild(dd);
+    }
+
+    function showResult(payload) {
+      clearResult();
+      resultPanel.classList.remove('hidden');
+      resultMessage.classList.remove('hidden');
+      resultMessage.textContent = payload.message || 'Report submitted successfully';
+
+      const report = payload.data;
+      if (!report) return;
+
+      if (report.image_url) {
+        resultImage.src = report.image_url;
+        resultImage.classList.remove('hidden');
+      }
+
+      const statusClass = `status status-${report.duplicate_status}`;
+      addDetail('Report ID', String(report.id));
+      addDetail('Duplicate status', `<span class="${statusClass}">${formatLabel(report.duplicate_status)}</span>`, true);
+      addDetail('Workflow status', formatLabel(report.status));
+      addDetail('Category', formatLabel(report.category));
+      addDetail('CV inferred category', formatLabel(report.cv_inferred_category || '—'));
+      addDetail('CV confidence', formatPercent(report.cv_confidence_score));
+      addDetail('Match confidence', formatPercent(report.confidence_score));
+      addDetail('Duplicate of report', report.duplicate_of_report_id ? String(report.duplicate_of_report_id) : '—');
+      addDetail('Coordinates', `${report.latitude}, ${report.longitude}`);
+      addDetail('Submitted', formatDate(report.created_at));
+
+      if (Array.isArray(report.detected_objects) && report.detected_objects.length) {
+        objectsWrap.classList.remove('hidden');
+        report.detected_objects.forEach((item) => {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          const label = item.label || item.name || 'object';
+          const confidence = item.confidence != null ? ` (${formatPercent(item.confidence)})` : '';
+          tag.textContent = `${formatLabel(label)}${confidence}`;
+          detectedObjects.appendChild(tag);
+        });
+      }
+    }
+
+    imageInput.addEventListener('change', () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+      const file = imageInput.files && imageInput.files[0];
+      if (!file) {
+        previewImage.classList.add('hidden');
+        previewEmpty.classList.remove('hidden');
+        return;
+      }
+      previewUrl = URL.createObjectURL(file);
+      previewImage.src = previewUrl;
+      previewImage.classList.remove('hidden');
+      previewEmpty.classList.add('hidden');
+    });
+
+    function geolocationErrorMessage(error) {
+      if (!error) {
+        return 'Could not determine your location. Enter coordinates manually.';
+      }
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          return 'Location permission was denied. Allow location access for this site in your browser settings, or enter coordinates manually.';
+        case error.POSITION_UNAVAILABLE:
+          return 'Location information is unavailable. Enable Location Services for your browser, or enter coordinates manually.';
+        case error.TIMEOUT:
+          return 'Location request timed out. Try again or enter coordinates manually.';
+        default:
+          return 'Could not determine your location. Enter coordinates manually.';
+      }
+    }
+
+    function requestCurrentPosition(options) {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+    }
+
+    async function resolveCurrentPosition() {
+      const attempts = [
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+      ];
+      let lastError = null;
+      for (const options of attempts) {
+        try {
+          return await requestCurrentPosition(options);
+        } catch (error) {
+          lastError = error;
+          if (error.code === error.PERMISSION_DENIED) {
+            throw error;
+          }
+        }
+      }
+      throw lastError;
+    }
+
+    useLocationBtn.addEventListener('click', async () => {
+      if (!navigator.geolocation) {
+        showError('Geolocation is not supported in this browser.');
+        return;
+      }
+      if (!window.isSecureContext) {
+        showError(
+          'Geolocation requires a secure connection. Open this page via http://localhost:8000 or https, not a plain HTTP LAN IP.'
+        );
+        return;
+      }
+      useLocationBtn.disabled = true;
+      useLocationBtn.textContent = 'Locating…';
+      try {
+        const position = await resolveCurrentPosition();
+        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+      } catch (error) {
+        showError(geolocationErrorMessage(error));
+      } finally {
+        useLocationBtn.disabled = false;
+        useLocationBtn.textContent = 'Use my location';
+      }
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearResult();
+      setSubmitting(true);
+
+      const formData = new FormData(form);
+      try {
+        const response = await fetch('/api/v1/reports', {
+          method: 'POST',
+          body: formData,
+        });
+        const payload = await response.json();
+        if (!response.ok || payload.success === false) {
+          showError(payload.message || 'Submission failed', payload.errors || []);
+          return;
+        }
+        showResult(payload);
+      } catch (error) {
+        showError('Network error while submitting the report.');
+      } finally {
+        setSubmitting(false);
+      }
+    });
+  </script>
+</body>
+</html>
