@@ -22,4 +22,7 @@ NON_CONCERN_PROMPTS: tuple[str, ...] = (
     "product advertisement or shopping",
     "nature landscape without damage",
     "random personal photo",
+    "educational infographic or chart",
+    "statistics or data visualization diagram",
+    "poster or cheat sheet with text and graphs",
 )

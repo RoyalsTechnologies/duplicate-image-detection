@@ -78,3 +78,8 @@ class DuplicateReviewResolve(BaseModel):
 class DuplicateReviewMerge(BaseModel):
     target_report_id: int
     notes: str | None = Field(default=None, max_length=2000)
+
+
+class ImageDescriptionRead(BaseModel):
+    description: str
+    generated: bool = False

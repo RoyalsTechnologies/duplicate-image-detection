@@ -6,6 +6,7 @@ from PIL import Image
 
 from app.computer_vision.runtime_env import configure_cv_runtime_env, log_cv_cache_status
 from app.computer_vision.base import BaseComputerVisionClient
+from app.computer_vision.classifier import YoloClassifierComputerVisionClient
 from app.computer_vision.embedding import EmbeddingComputerVisionClient
 from app.computer_vision.local import LocalComputerVisionClient
 from app.computer_vision.yolo import YoloV11ComputerVisionClient
@@ -13,7 +14,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_CV_PROVIDERS = frozenset({"local", "embedding", "yolov11"})
+SUPPORTED_CV_PROVIDERS = frozenset({"local", "embedding", "yolov11", "yolov11-cls"})
+_CV_DEP_PROVIDERS = frozenset({"embedding", "yolov11", "yolov11-cls"})
+_YOLO_PROVIDERS = frozenset({"yolov11", "yolov11-cls"})
 
 
 def build_cv_client() -> BaseComputerVisionClient:
@@ -38,6 +41,15 @@ def build_cv_client() -> BaseComputerVisionClient:
             pretrained=settings.cv_embedding_pretrained,
             device=settings.cv_device,
         )
+    if provider == "yolov11-cls":
+        return YoloClassifierComputerVisionClient(
+            model_path=settings.cv_classifier_model,
+            confidence=settings.cv_classifier_confidence,
+            clip_verify_below=settings.cv_classifier_clip_verify_below,
+            model_name=settings.cv_embedding_model,
+            pretrained=settings.cv_embedding_pretrained,
+            device=settings.cv_device,
+        )
     return LocalComputerVisionClient()
 
 
@@ -49,7 +61,7 @@ def validate_cv_provider_dependencies() -> None:
     import importlib.util
     from pathlib import Path
 
-    if provider in {"embedding", "yolov11"}:
+    if provider in _CV_DEP_PROVIDERS:
         venv_python = Path("/venv/bin/python")
         if not venv_python.is_file():
             raise RuntimeError(
@@ -59,11 +71,11 @@ def validate_cv_provider_dependencies() -> None:
             )
 
     missing: list[str] = []
-    if provider in {"embedding", "yolov11"} and importlib.util.find_spec("torch") is None:
+    if provider in _CV_DEP_PROVIDERS and importlib.util.find_spec("torch") is None:
         missing.append("torch")
-    if provider in {"embedding", "yolov11"} and importlib.util.find_spec("open_clip") is None:
+    if provider in _CV_DEP_PROVIDERS and importlib.util.find_spec("open_clip") is None:
         missing.append("open-clip-torch")
-    if provider == "yolov11":
+    if provider in _YOLO_PROVIDERS:
         if importlib.util.find_spec("ultralytics") is None:
             missing.append("ultralytics")
         else:

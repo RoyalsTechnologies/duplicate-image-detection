@@ -1,0 +1,16 @@
+# Training pipeline dependencies (kept separate from the API runtime).
+# Install into a dedicated environment, ideally with a GPU:
+#   python -m venv .venv-ml && source .venv-ml/bin/activate
+#   pip install -r ml/requirements.txt
+
+ultralytics>=8.3.0
+autodistill>=0.1.24
+autodistill-grounded-sam>=0.1.1
+roboflow>=1.1.0
+scikit-learn>=1.4.0
+bing-image-downloader>=1.1.2
+torch>=2.2.0
+torchvision>=0.17.0
+opencv-python>=4.9.0
+pillow>=10.0.0
+pyyaml>=6.0

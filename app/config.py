@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     cv_cache_dir: Path = Path("/var/cache/did-backend-api")
     cv_yolo_model: str = "/var/cache/did-backend-api/yolo11n.pt"
     cv_yolo_confidence: float = 0.25
+    cv_classifier_model: str = "/var/cache/did-backend-api/yolo11n-cls.pt"
+    cv_classifier_confidence: float = 0.35
+    # When the classifier accepts a concern below this confidence, CLIP must also
+    # agree before the upload is treated as relevant (catches infographics, etc.).
+    cv_classifier_clip_verify_below: float = 0.75
     cv_reject_irrelevant_images: bool = True
     cv_relevance_threshold: float = 0.15
     cv_relevance_min_detection_confidence: float = 0.25
@@ -35,6 +40,16 @@ class Settings(BaseSettings):
     perceptual_hash_possible_similarity: float = 0.75
     max_upload_size_mb: int = 10
     upload_rate_limit_per_minute: int = 20
+    groq_api_key: str | None = None
+    groq_vision_enabled: bool = True
+    groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_vision_max_tokens: int = 256
+    groq_vision_timeout_seconds: float = 20.0
+    groq_narration_rate_limit_per_minute: int = 15
+
+    @property
+    def groq_narration_available(self) -> bool:
+        return bool(self.groq_api_key and self.groq_vision_enabled)
 
     @property
     def duplicate_exact_distance_meters(self) -> int:
