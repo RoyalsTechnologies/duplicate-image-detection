@@ -6,8 +6,10 @@ import pytest
 from app.computer_vision import (
     DetectedObject,
     EmbeddingComputerVisionClient,
+    ImageAnalysis,
     LocalComputerVisionClient,
     SUPPORTED_CV_PROVIDERS,
+    YoloClassifierComputerVisionClient,
     YoloV11ComputerVisionClient,
     build_cv_client,
 )
@@ -33,6 +35,7 @@ def cv_settings():
         ("local", LocalComputerVisionClient),
         ("embedding", EmbeddingComputerVisionClient),
         ("yolov11", YoloV11ComputerVisionClient),
+        ("yolov11-cls", YoloClassifierComputerVisionClient),
     ],
 )
 def test_build_cv_client_returns_configured_provider(
@@ -50,7 +53,7 @@ def test_build_cv_client_rejects_unknown_provider(cv_settings) -> None:
 
 
 def test_supported_providers_include_expected_values() -> None:
-    assert SUPPORTED_CV_PROVIDERS == {"local", "embedding", "yolov11"}
+    assert SUPPORTED_CV_PROVIDERS == {"local", "embedding", "yolov11", "yolov11-cls"}
 
 
 def test_embedding_client_inherits_local_detection(image_bytes) -> None:
@@ -176,6 +179,99 @@ def test_yolo_client_raises_helpful_error_when_ultralytics_missing(monkeypatch) 
     monkeypatch.setattr(builtins, "__import__", fake_import)
     with pytest.raises(RuntimeError, match='pip install -e ".\\[cv-yolo\\]"'):
         client._load_yolo()
+
+
+def _classifier_with_prediction(label: str, confidence: float):
+    client = YoloClassifierComputerVisionClient(confidence=0.5)
+    client._classify = lambda _bytes: (label, confidence)  # type: ignore[assignment]
+    return client
+
+
+def test_classifier_maps_confident_concern_to_detection(image_bytes) -> None:
+    client = _classifier_with_prediction("flooding", 0.9)
+    data = image_bytes((30, 90, 190))
+    detections = client.detect_objects(data)
+    assert detections == [DetectedObject("flooding", 0.9)]
+    assert client.category_from_detected_objects(detections) == ReportCategory.flooding
+
+
+def test_classifier_abstains_on_none_class(image_bytes) -> None:
+    client = _classifier_with_prediction("none", 0.99)
+    assert client.detect_objects(image_bytes((30, 90, 190))) == []
+
+
+def test_classifier_abstains_below_confidence(image_bytes) -> None:
+    client = _classifier_with_prediction("flooding", 0.3)
+    assert client.detect_objects(image_bytes((30, 90, 190))) == []
+
+
+def _analysis_from_detections(detections: list[DetectedObject]) -> ImageAnalysis:
+    return ImageAnalysis(
+        perceptual_hash=None,
+        embedding=[],
+        detected_objects=detections,
+        inferred_category=None,
+        category_confidence=detections[0].confidence if detections else 0.0,
+    )
+
+
+def test_classifier_relevance_rejects_when_no_detection() -> None:
+    client = YoloClassifierComputerVisionClient()
+    assessment = client.assess_relevance(_analysis_from_detections([]))
+    assert assessment.is_relevant is False
+    assert assessment.reason == "no_concern_classified"
+
+
+def test_classifier_relevance_accepts_confident_concern() -> None:
+    client = YoloClassifierComputerVisionClient(clip_verify_below=0.75)
+    analysis = _analysis_from_detections([DetectedObject("pothole", 0.88)])
+    assessment = client.assess_relevance(analysis)
+    assert assessment.is_relevant is True
+    assert assessment.reason == "concern_classified"
+
+
+def test_classifier_clip_overrules_borderline_concern(image_bytes) -> None:
+    from app.computer_vision.base import RelevanceAssessment
+
+    client = YoloClassifierComputerVisionClient(clip_verify_below=0.75)
+    analysis = _analysis_from_detections([DetectedObject("flooding", 0.6)])
+    client._assess_relevance_with_clip = lambda _bytes: RelevanceAssessment(  # type: ignore[method-assign]
+        is_relevant=False,
+        score=0.12,
+        reason="clip_not_a_concern",
+    )
+    assessment = client.assess_relevance(analysis, image_bytes((30, 90, 190)))
+    assert assessment.is_relevant is False
+    assert assessment.reason == "clip_overruled_borderline_classifier"
+
+
+def test_classifier_clip_accepts_when_classifier_abstains(image_bytes) -> None:
+    from app.computer_vision.base import RelevanceAssessment
+
+    client = YoloClassifierComputerVisionClient()
+    analysis = _analysis_from_detections([])
+    client._assess_relevance_with_clip = lambda _bytes: RelevanceAssessment(  # type: ignore[method-assign]
+        is_relevant=True,
+        score=0.39,
+        reason="clip_concern_match",
+    )
+    assessment = client.assess_relevance(analysis, image_bytes((30, 90, 190)))
+    assert assessment.is_relevant is True
+    assert assessment.reason == "clip_concern_when_classifier_abstained"
+
+
+def test_factory_classifier_uses_settings(cv_settings) -> None:
+    cv_settings.cv_provider = "yolov11-cls"
+    cv_settings.cv_device = "cpu"
+    cv_settings.cv_classifier_model = "custom-cls.pt"
+    cv_settings.cv_classifier_confidence = 0.6
+    cv_settings.cv_classifier_clip_verify_below = 0.8
+
+    client = factory_build_cv_client()
+    assert isinstance(client, YoloClassifierComputerVisionClient)
+    assert client.model_path == "custom-cls.pt"
+    assert client.confidence == 0.6
+    assert client.clip_verify_below == 0.8
 
 
 def test_factory_build_cv_client_uses_settings_device_and_model_names(cv_settings) -> None:

@@ -1,17 +1,16 @@
-import io
 from dataclasses import asdict
-from pathlib import Path
 
 from fastapi import UploadFile
 from geoalchemy2.functions import ST_MakePoint, ST_SetSRID
-from PIL import Image, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache import cache_image_hash, get_cached_report_for_image_hash, increment_rate_limit
 from app.computer_vision import cv_client
 from app.config import settings
 from app.duplicate_detection import DuplicateDetector
 from app.exceptions import BadRequestError, NotFoundError
+from app.images import read_upload_image
 from app.models import DuplicateReview, DuplicateStatus, Report, ReportStatus, ReviewStatus
+from app.narration import ImageNarrationService
 from app.repositories import AuditRepository, ReportRepository, ReviewRepository
 from app.schemas import (
     DuplicateReviewResolve,
@@ -21,10 +20,6 @@ from app.schemas import (
 )
 from app.storage import storage
 from app.utils import sanitize_text, sha256_bytes, utcnow
-
-MAX_IMAGE_BYTES = settings.max_upload_size_mb * 1024 * 1024
-ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
-ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 class ReportService:
@@ -42,7 +37,7 @@ class ReportService:
         request_id: str | None = None,
     ) -> Report:
         await self._enforce_upload_rate_limit(source_ip)
-        image_bytes = await self._read_image(image)
+        image_bytes, image_mime_type = await read_upload_image(image)
         image_sha256 = sha256_bytes(image_bytes)
         cached_report_id = await get_cached_report_for_image_hash(image_sha256)
         exact_duplicate = await self._find_exact_duplicate_before_storage(
@@ -102,9 +97,17 @@ class ReportService:
                 requires_review = decision.requires_review
                 decision_candidate = decision.candidate
 
+            description = await ImageNarrationService().narrate_if_missing(
+                image_bytes,
+                mime_type=image_mime_type,
+                description=payload.description,
+                category=payload.category,
+                detected_objects=detected_objects,
+            )
+
             report = Report(
                 title=sanitize_text(payload.title) or payload.title,
-                description=sanitize_text(payload.description),
+                description=sanitize_text(description),
                 category=payload.category,
                 latitude=payload.latitude,
                 longitude=payload.longitude,
@@ -225,15 +228,22 @@ class ReportService:
     ) -> Report:
         await self._enforce_upload_rate_limit(source_ip)
         parent = await self.get_report(report_id)
-        image_bytes = await self._read_image(image)
+        image_bytes, image_mime_type = await read_upload_image(image)
         image_url: str | None = None
         try:
             supporting_analysis = cv_client.analyze(image_bytes)
             self._ensure_relevant_concern_image(image_bytes, supporting_analysis)
             image_url = await storage.save_upload(image, image_bytes)
+            description = await ImageNarrationService().narrate_if_missing(
+                image_bytes,
+                mime_type=image_mime_type,
+                description=payload.description,
+                category=parent.category,
+                detected_objects=[asdict(obj) for obj in supporting_analysis.detected_objects],
+            )
             report = Report(
                 title=sanitize_text(payload.title) or payload.title,
-                description=sanitize_text(payload.description),
+                description=sanitize_text(description),
                 category=parent.category,
                 latitude=payload.latitude,
                 longitude=payload.longitude,
@@ -288,24 +298,6 @@ class ReportService:
         attempts = await increment_rate_limit(f"upload-rate:{source_ip}", ttl_seconds=60)
         if attempts > settings.upload_rate_limit_per_minute:
             raise BadRequestError("Too many upload requests; try again later")
-
-    async def _read_image(self, image: UploadFile) -> bytes:
-        extension = Path(image.filename or "").suffix.lower()
-        if image.content_type not in ALLOWED_IMAGE_MIME_TYPES:
-            raise BadRequestError("Uploaded file must be a JPEG, PNG, or WebP image")
-        if extension not in ALLOWED_IMAGE_EXTENSIONS:
-            raise BadRequestError("Uploaded image extension is not allowed")
-        data = await image.read(MAX_IMAGE_BYTES + 1)
-        if not data:
-            raise BadRequestError("Image is required")
-        if len(data) > MAX_IMAGE_BYTES:
-            raise BadRequestError("Image exceeds configured upload size limit")
-        try:
-            with Image.open(io.BytesIO(data)) as parsed_image:
-                parsed_image.verify()
-        except (UnidentifiedImageError, OSError):
-            raise BadRequestError("Uploaded file is not a valid image")
-        return data
 
 
 class DuplicateReviewService:

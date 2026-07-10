@@ -48,3 +48,17 @@ secrets.json
 
 # Logs
 *.log
+
+# ML training artifacts
+ml/raw_images/
+ml/raw_images_flat/
+ml/raw_images_negative/
+ml/automated_dataset/
+ml/cls_dataset/
+ml/runs/
+ml/cls_runs/
+ml/deployment/
+ml/.cache/
+ml/*.log
+.venv-ml/
+*.pt

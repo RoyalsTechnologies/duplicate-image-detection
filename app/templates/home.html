@@ -283,13 +283,24 @@
       pointer-events: none;
       opacity: 0.55;
     }
+    .field-hint {
+      margin: 0.45rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .field-hint.narrating {
+      color: var(--accent);
+    }
+    .field-hint.error {
+      color: #b42318;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>Report an environmental concern</h1>
-      <p class="lead">Upload a photo, pin the location, and submit a report. The system checks for duplicates and runs on-device image analysis.</p>
+      <p class="lead">Upload a photo, pin the location, and submit a report. Groq AI can suggest a description; the system also checks for duplicates and runs on-device image analysis.</p>
     </header>
 
     <div class="grid">
@@ -323,6 +334,7 @@
           <div class="field">
             <label for="description">Description</label>
             <textarea id="description" name="description" maxlength="5000" placeholder="Describe what you observed"></textarea>
+            <p class="field-hint" id="description-hint">Select a photo to auto-generate a description with Groq AI (you can edit it).</p>
           </div>
 
           <div class="field">
@@ -389,8 +401,13 @@
     const useLocationBtn = document.getElementById('use-location');
     const formCard = document.getElementById('form-card');
     const submitLoader = document.getElementById('submit-loader');
+    const descriptionInput = document.getElementById('description');
+    const descriptionHint = document.getElementById('description-hint');
+    const categoryInput = document.getElementById('category');
 
     let previewUrl = null;
+    let descriptionUserEdited = false;
+    let narrationRequestId = 0;
 
     function setSubmitting(isSubmitting) {
       submitBtn.disabled = isSubmitting;
@@ -466,6 +483,7 @@
       addDetail('Duplicate status', `<span class="${statusClass}">${formatLabel(report.duplicate_status)}</span>`, true);
       addDetail('Workflow status', formatLabel(report.status));
       addDetail('Category', formatLabel(report.category));
+      addDetail('Description', report.description || '—');
       addDetail('CV inferred category', formatLabel(report.cv_inferred_category || '—'));
       addDetail('CV confidence', formatPercent(report.cv_confidence_score));
       addDetail('Match confidence', formatPercent(report.confidence_score));
@@ -486,6 +504,68 @@
       }
     }
 
+    function setDescriptionHint(text, state = '') {
+      descriptionHint.textContent = text;
+      descriptionHint.classList.remove('narrating', 'error');
+      if (state) {
+        descriptionHint.classList.add(state);
+      }
+    }
+
+    async function requestImageNarration(file) {
+      const requestId = ++narrationRequestId;
+      setDescriptionHint('Generating description with Groq AI…', 'narrating');
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('category', categoryInput.value);
+
+      try {
+        const response = await fetch('/api/v1/describe-image', {
+          method: 'POST',
+          body: formData,
+        });
+        const payload = await response.json();
+        if (requestId !== narrationRequestId) {
+          return;
+        }
+        if (!response.ok || payload.success === false) {
+          setDescriptionHint(
+            payload.message || 'Could not generate a description. You can type one manually.',
+            'error'
+          );
+          return;
+        }
+        const generated = payload.data && payload.data.description;
+        if (generated && !descriptionUserEdited) {
+          descriptionInput.value = generated;
+          setDescriptionHint('AI description added. Edit it if needed.');
+          return;
+        }
+        if (generated) {
+          setDescriptionHint('AI description ready, but your edits were kept.');
+          return;
+        }
+        setDescriptionHint('No AI description returned. You can type one manually.');
+      } catch (error) {
+        if (requestId !== narrationRequestId) {
+          return;
+        }
+        setDescriptionHint('Could not reach the description service. You can type one manually.', 'error');
+      }
+    }
+
+    descriptionInput.addEventListener('input', () => {
+      descriptionUserEdited = true;
+    });
+
+    categoryInput.addEventListener('change', () => {
+      const file = imageInput.files && imageInput.files[0];
+      if (file && !descriptionUserEdited) {
+        requestImageNarration(file);
+      }
+    });
+
     imageInput.addEventListener('change', () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -495,12 +575,17 @@
       if (!file) {
         previewImage.classList.add('hidden');
         previewEmpty.classList.remove('hidden');
+        narrationRequestId += 1;
+        setDescriptionHint('Select a photo to auto-generate a description with Groq AI (you can edit it).');
         return;
       }
       previewUrl = URL.createObjectURL(file);
       previewImage.src = previewUrl;
       previewImage.classList.remove('hidden');
       previewEmpty.classList.add('hidden');
+      descriptionUserEdited = false;
+      descriptionInput.value = '';
+      requestImageNarration(file);
     });
 
     function geolocationErrorMessage(error) {

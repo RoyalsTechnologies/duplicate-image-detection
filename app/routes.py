@@ -9,14 +9,33 @@ from app.schemas import (
     DuplicateReviewMerge,
     DuplicateReviewRead,
     DuplicateReviewResolve,
+    ImageDescriptionRead,
     ReportCreate,
     ReportRead,
     ReportStatusUpdate,
     SupportingEvidenceCreate,
 )
+from app.narration import ImageNarrationService
 from app.services import DuplicateReviewService, ReportService
 
 router = APIRouter(prefix=settings.api_v1_prefix)
+
+
+@router.post("/describe-image", response_model=ApiResponse[ImageDescriptionRead])
+async def describe_image(
+    request: Request,
+    image: Annotated[UploadFile, File()],
+    category: Annotated[ReportCategory | None, Form()] = None,
+) -> ApiResponse[ImageDescriptionRead]:
+    description, generated = await ImageNarrationService().describe_image(
+        image,
+        category=category,
+        source_ip=request.state.client_ip,
+    )
+    return ApiResponse(
+        message="Image description generated" if generated else "Image description unavailable",
+        data=ImageDescriptionRead(description=description, generated=generated),
+    )
 
 
 @router.post("/reports", response_model=ApiResponse[ReportRead], status_code=201)
