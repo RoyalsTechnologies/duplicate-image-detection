@@ -25,6 +25,13 @@ services:
       - ./alembic:/app/alembic
       - ./uploads:/app/uploads
       - cv_ultralytics_config:/var/cache/did-backend-api/ultralytics
+      # Serve the fine-tuned YOLOv11 weights (ml/pipeline.py export target) in
+      # place of the stock COCO weights baked into the image. Comment this out
+      # to fall back to stock yolo11n.pt.
+      - ./ml/deployment/best.pt:/var/cache/did-backend-api/yolo11n.pt:ro
+      # Fine-tuned YOLOv11 classifier (CV_PROVIDER=yolov11-cls). Trained via
+      # `python -m ml.pipeline --phase classifier`.
+      - ./ml/deployment/best_cls.pt:/var/cache/did-backend-api/yolo11n-cls.pt:ro
     depends_on:
       - postgres
       - redis

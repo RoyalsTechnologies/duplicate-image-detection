@@ -46,7 +46,9 @@ def log_cv_cache_status() -> None:
 
     cache_root = settings.cv_cache_dir
     hf_hub = Path(os.environ.get("HUGGINGFACE_HUB_CACHE", cache_root / "huggingface" / "hub"))
-    yolo_path = Path(settings.cv_yolo_model)
+    yolo_path = Path(
+        settings.cv_classifier_model if provider == "yolov11-cls" else settings.cv_yolo_model
+    )
 
     yolo_bytes = yolo_path.stat().st_size if yolo_path.is_file() else 0
     hf_files = list(hf_hub.rglob("*")) if hf_hub.is_dir() else []
@@ -59,13 +61,13 @@ def log_cv_cache_status() -> None:
         len(hf_files),
         os.environ.get("HF_HOME"),
     )
-    if provider in {"embedding", "yolov11"} and not hf_files:
+    if not hf_files:
         logger.warning(
             "CLIP cache is empty under %s; rebuild with DOCKER_BUILD_TARGET=runtime-cv "
             "(docker compose build api && docker compose up -d api)",
             hf_hub,
         )
-    if provider == "yolov11" and yolo_bytes < MIN_YOLO_WEIGHTS_BYTES:
+    if provider in {"yolov11", "yolov11-cls"} and yolo_bytes < MIN_YOLO_WEIGHTS_BYTES:
         logger.warning(
             "YOLO weights missing or incomplete at %s (%s bytes); expected >= %s",
             yolo_path,
