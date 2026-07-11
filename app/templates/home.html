@@ -300,7 +300,7 @@
   <div class="wrap">
     <header>
       <h1>Report an environmental concern</h1>
-      <p class="lead">Upload a photo, pin the location, and submit a report. Groq AI can suggest a description; the system also checks for duplicates and runs on-device image analysis.</p>
+      <p class="lead">Upload a photo, pin the location, and submit a report. The system can suggest a description, check for duplicates, and run on-device image analysis.</p>
     </header>
 
     <div class="grid">
@@ -334,7 +334,7 @@
           <div class="field">
             <label for="description">Description</label>
             <textarea id="description" name="description" maxlength="5000" placeholder="Describe what you observed"></textarea>
-            <p class="field-hint" id="description-hint">Select a photo to auto-generate a description with Groq AI (you can edit it).</p>
+            <p class="field-hint" id="description-hint">Select a photo to auto-generate a description (you can edit it).</p>
           </div>
 
           <div class="field">
@@ -514,7 +514,7 @@
 
     async function requestImageNarration(file) {
       const requestId = ++narrationRequestId;
-      setDescriptionHint('Generating description with Groq AI…', 'narrating');
+      setDescriptionHint('Generating description…', 'narrating');
 
       const formData = new FormData();
       formData.append('image', file);
@@ -539,14 +539,14 @@
         const generated = payload.data && payload.data.description;
         if (generated && !descriptionUserEdited) {
           descriptionInput.value = generated;
-          setDescriptionHint('AI description added. Edit it if needed.');
+          setDescriptionHint('Description added. Edit it if needed.');
           return;
         }
         if (generated) {
-          setDescriptionHint('AI description ready, but your edits were kept.');
+          setDescriptionHint('Description ready, but your edits were kept.');
           return;
         }
-        setDescriptionHint('No AI description returned. You can type one manually.');
+        setDescriptionHint('No description returned. You can type one manually.');
       } catch (error) {
         if (requestId !== narrationRequestId) {
           return;
@@ -576,7 +576,7 @@
         previewImage.classList.add('hidden');
         previewEmpty.classList.remove('hidden');
         narrationRequestId += 1;
-        setDescriptionHint('Select a photo to auto-generate a description with Groq AI (you can edit it).');
+        setDescriptionHint('Select a photo to auto-generate a description (you can edit it).');
         return;
       }
       previewUrl = URL.createObjectURL(file);
