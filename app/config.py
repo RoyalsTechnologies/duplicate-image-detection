@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "did-backend-api"
     environment: str = "local"
     database_url: str
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://localhost:3061/0"
     allowed_ips: str = ""
     trusted_proxy_ips: str = ""
     local_storage_dir: Path = Path("uploads")
