@@ -1,0 +1,14 @@
+# Optional local overrides for fine-tuned YOLO weights.
+#
+# Usage:
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+#   # train or copy weights into ml/deployment/ first
+#   docker compose up -d --build
+#
+# docker-compose.override.yml is gitignored. Do not commit trained weights.
+
+services:
+  api:
+    volumes:
+      - ./ml/deployment/best.pt:/var/cache/did-backend-api/yolo11n.pt:ro
+      - ./ml/deployment/best_cls.pt:/var/cache/did-backend-api/yolo11n-cls.pt:ro

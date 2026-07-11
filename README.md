@@ -68,6 +68,8 @@ For Docker, set `CV_EXTRAS` and `DOCKER_BUILD_TARGET` to match your provider, th
 
 The `runtime-cv` target prefetches CLIP and YOLO weights into `/var/cache/did-backend-api` at build time and reuses a cached PyTorch layer so torch is not re-downloaded on every rebuild.
 
+Fine-tuned weights under `ml/deployment/` are not in git. For local overrides, copy `docker-compose.override.example.yml` to `docker-compose.override.yml` after training. Production uses the stock weights baked into the `runtime-cv` image unless you add an override.
+
 ```bash
 # Example: YOLOv11 + CLIP
 CV_PROVIDER=yolov11

@@ -10,8 +10,12 @@ from pathlib import Path
 CACHE_ROOT = Path("/var/cache/did-backend-api")
 HF_HOME = CACHE_ROOT / "huggingface"
 DEFAULT_YOLO_DEST = CACHE_ROOT / "yolo11n.pt"
+DEFAULT_YOLO_CLS_DEST = CACHE_ROOT / "yolo11n-cls.pt"
 MIN_YOLO_BYTES = 1_000_000  # keep in sync with app/computer_vision/constants.py
 YOLO11N_URL = "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo11n.pt"
+YOLO11N_CLS_URL = (
+    "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo11n-cls.pt"
+)
 
 
 def _extras() -> str:
@@ -54,6 +58,16 @@ def prefetch_yolo() -> None:
         raise SystemExit(f"YOLO weights look incomplete: {dest.stat().st_size} bytes")
 
 
+def prefetch_yolo_classifier() -> None:
+    """Download stock YOLOv11 classification weights for yolov11-cls."""
+    dest = Path(os.environ.get("CV_CLASSIFIER_MODEL", str(DEFAULT_YOLO_CLS_DEST)))
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading YOLO classifier weights to {dest}...", file=sys.stderr)
+    urllib.request.urlretrieve(YOLO11N_CLS_URL, dest)
+    if dest.stat().st_size < MIN_YOLO_BYTES:
+        raise SystemExit(f"YOLO classifier weights look incomplete: {dest.stat().st_size} bytes")
+
+
 def main() -> None:
     CACHE_ROOT.mkdir(parents=True, exist_ok=True)
     if not _needs_clip() and not _needs_yolo():
@@ -63,6 +77,8 @@ def main() -> None:
     if _needs_yolo():
         print("Prefetching YOLO weights...", file=sys.stderr)
         prefetch_yolo()
+        print("Prefetching YOLO classifier weights...", file=sys.stderr)
+        prefetch_yolo_classifier()
     if _needs_clip():
         print("Prefetching CLIP weights...", file=sys.stderr)
         prefetch_clip()
