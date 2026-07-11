@@ -4,7 +4,11 @@ import os
 import pytest
 from PIL import Image
 
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://did:did@localhost:5432/did")
+_POSTGRES_PORT = os.environ.get("POSTGRES_PORT", "3060")
+os.environ.setdefault(
+    "DATABASE_URL",
+    f"postgresql+asyncpg://did:did@localhost:{_POSTGRES_PORT}/did",
+)
 os.environ.setdefault("ALLOWED_IPS", "127.0.0.1,::1")
 os.environ.setdefault("TRUSTED_PROXY_IPS", "10.0.0.1")
 os.environ.setdefault("REDIS_URL", "")

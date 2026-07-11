@@ -15,10 +15,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+_POSTGRES_PORT = os.environ.get("POSTGRES_PORT", "3060")
 # Integration tests use the configured database and reset schema once per session.
 os.environ.setdefault(
     "INTEGRATION_DATABASE_URL",
-    "postgresql+asyncpg://did:did@localhost:5432/did",
+    f"postgresql+asyncpg://did:did@localhost:{_POSTGRES_PORT}/did",
 )
 os.environ["DATABASE_URL"] = os.environ["INTEGRATION_DATABASE_URL"]
 os.environ.setdefault("REDIS_URL", "")
