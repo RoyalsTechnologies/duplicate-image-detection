@@ -99,10 +99,7 @@ class YoloClassifierComputerVisionClient(EmbeddingComputerVisionClient):
             if category is None:
                 continue
 
-            if (
-                image_bytes is not None
-                and detected.confidence < self.clip_verify_below
-            ):
+            if image_bytes is not None and detected.confidence < self.clip_verify_below:
                 try:
                     clip_assessment = self._assess_relevance_with_clip(image_bytes)
                     if not clip_assessment.is_relevant:
