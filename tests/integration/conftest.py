@@ -24,7 +24,7 @@ os.environ.setdefault(
 os.environ["DATABASE_URL"] = os.environ["INTEGRATION_DATABASE_URL"]
 os.environ.setdefault("REDIS_URL", "")
 
-from app.config import get_settings
+from app.config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
 settings = get_settings()
