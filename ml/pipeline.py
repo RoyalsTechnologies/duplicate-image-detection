@@ -366,9 +366,7 @@ def prepare_classification() -> Path:
 
     if config.NEGATIVE_IMAGES_DIR.is_dir():
         negatives = [p for p in sorted(config.NEGATIVE_IMAGES_DIR.rglob("*")) if p.is_file()]
-        totals[config.NONE_CLASS_NAME] = _split_into_class_dir(
-            negatives, config.NONE_CLASS_NAME
-        )
+        totals[config.NONE_CLASS_NAME] = _split_into_class_dir(negatives, config.NONE_CLASS_NAME)
     else:
         logger.warning(
             "No negative images at %s; the classifier will lack a 'none' class "

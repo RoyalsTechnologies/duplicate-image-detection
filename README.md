@@ -18,9 +18,9 @@ docker compose up --build
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:8000/ | Report upload UI |
-| http://localhost:8000/docs | OpenAPI docs |
-| http://localhost:8000/health | Health check (public) |
+| http://localhost:3050/ | Report upload UI |
+| http://localhost:3050/docs | OpenAPI docs |
+| http://localhost:3050/health | Health check (public) |
 
 Compose runs migrations on startup. Uploads are stored under `./uploads`.
 

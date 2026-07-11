@@ -39,11 +39,7 @@ def test_narrate_image_with_groq_returns_caption(groq_settings: None) -> None:
         request=request,
         json={
             "choices": [
-                {
-                    "message": {
-                        "content": "Standing water covers the road near a blocked drain."
-                    }
-                }
+                {"message": {"content": "Standing water covers the road near a blocked drain."}}
             ]
         },
     )

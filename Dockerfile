@@ -70,9 +70,9 @@ COPY alembic.ini ./
 COPY docker/entrypoint.sh /docker/entrypoint.sh
 RUN chmod +x /docker/entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 3050
 ENTRYPOINT ["/docker/entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3050"]
 
 # Copy CV artifacts first so this stage waits for builder-cv (avoids parallel apt with build-deps).
 FROM python:3.12-slim AS runtime-cv
@@ -104,6 +104,6 @@ COPY alembic.ini ./
 COPY docker/entrypoint.sh /docker/entrypoint.sh
 RUN chmod +x /docker/entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 3050
 ENTRYPOINT ["/docker/entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3050"]

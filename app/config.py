@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     allowed_ips: str = ""
     trusted_proxy_ips: str = ""
     local_storage_dir: Path = Path("uploads")
-    public_base_url: str = "http://localhost:8000"
+    public_base_url: str = "http://localhost:3050"
     api_v1_prefix: str = "/api/v1"
-    port: int = 8000
+    port: int = 3050
     cv_provider: str = "local"
     cv_device: str = "cpu"
     cv_embedding_model: str = "ViT-B-32"

@@ -100,8 +100,12 @@ TARGETS: tuple[ConcernTarget, ...] = (
     ConcernTarget("open sewage drain", "blocked drain or gutter", "blocked_drain"),
     ConcernTarget("factory smoke air pollution", "smoke or air pollution", "pollution"),
     ConcernTarget("burning waste smoke", "smoke or air pollution", "pollution"),
-    ConcernTarget("broken street light pole", "broken public infrastructure", "broken_public_facility"),
-    ConcernTarget("fallen electricity pole", "broken public infrastructure", "broken_public_facility"),
+    ConcernTarget(
+        "broken street light pole", "broken public infrastructure", "broken_public_facility"
+    ),
+    ConcernTarget(
+        "fallen electricity pole", "broken public infrastructure", "broken_public_facility"
+    ),
     ConcernTarget("dirty public toilet sanitation", "dirty unsanitary public area", "sanitation"),
     ConcernTarget("open defecation dirty area", "dirty unsanitary public area", "sanitation"),
 )

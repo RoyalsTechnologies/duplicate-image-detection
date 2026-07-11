@@ -14,7 +14,7 @@ services:
       - path: .env
         required: false
     ports:
-      - "8000:8000"
+      - "${PORT:-3050}:${PORT:-3050}"
     environment:
       CV_CACHE_DIR: /var/cache/did-backend-api
       HF_HOME: /var/cache/did-backend-api/huggingface
@@ -35,7 +35,7 @@ services:
     depends_on:
       - postgres
       - redis
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/alembic"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3050} --reload --reload-dir /app/app --reload-dir /app/alembic"
 
   postgres:
     build: ./docker/postgres

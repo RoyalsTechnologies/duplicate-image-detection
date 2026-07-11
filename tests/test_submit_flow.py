@@ -54,7 +54,7 @@ async def test_exact_sha_duplicate_is_checked_before_storage(monkeypatch):
     service.db = FakeDb()
     exact = SimpleNamespace(
         id=7,
-        image_url="http://localhost:8000/uploads/existing.jpg",
+        image_url="http://localhost:3050/uploads/existing.jpg",
         perceptual_hash="ffffffffffffffff",
         image_embedding=[0.1] * 512,
         detected_objects=[{"label": "rubbish", "confidence": 0.9}],
@@ -114,7 +114,7 @@ async def test_new_upload_is_deleted_when_db_write_fails(monkeypatch):
         return None
 
     async def fake_save(*args, **kwargs):
-        return "http://localhost:8000/uploads/new.jpg"
+        return "http://localhost:3050/uploads/new.jpg"
 
     async def fake_delete(url):
         deleted.append(url)
@@ -154,4 +154,4 @@ async def test_new_upload_is_deleted_when_db_write_fails(monkeypatch):
         )
 
     assert service.db.rolled_back is True
-    assert deleted == ["http://localhost:8000/uploads/new.jpg"]
+    assert deleted == ["http://localhost:3050/uploads/new.jpg"]
