@@ -85,7 +85,15 @@ If the CV build fails with **cannot allocate memory**, increase Docker Desktop m
 
 ## Security
 
-All routes except `/` and `/health` require the client IP to be in `ALLOWED_IPS` (supports CIDR ranges).
+IP whitelisting is **optional** and controlled by `.env`:
+
+| Setting | Meaning |
+|---|---|
+| `IP_WHITELIST_ENABLED=false` (default) | All clients allowed |
+| `IP_WHITELIST_ENABLED=true` + `ALLOWED_IPS=...` | Only listed IPs/CIDRs allowed |
+| `IP_WHITELIST_ENABLED=true` + empty `ALLOWED_IPS` | Non-exempt routes denied (fail closed) |
+
+Public paths (`/`, `/health`, `/docs`, `/redoc`, `/openapi.json`) stay reachable even when the whitelist is on.
 
 When exposing the API via **ngrok** or another tunnel on the same host, keep `TRUSTED_PROXY_IPS` to loopback only (`127.0.0.1,::1`). Docker bridge IPs (`172.16.0.0/12`) belong in `ALLOWED_IPS`, not `TRUSTED_PROXY_IPS`, so ngrok's `X-Forwarded-For` header does not bypass the whitelist.
 

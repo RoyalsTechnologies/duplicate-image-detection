@@ -35,6 +35,85 @@ def test_trusts_forwarded_headers_only_from_trusted_proxy(monkeypatch) -> None:
     assert get_client_ip(request) == "197.253.123.104"
 
 
+def test_whitelist_disabled_permits_all_clients(monkeypatch) -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.middleware import IPWhitelistMiddleware
+
+    monkeypatch.setattr("app.middleware.settings.ip_whitelist_enabled", False)
+    monkeypatch.setattr("app.middleware.settings.allowed_ips", "127.0.0.1")
+
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(IPWhitelistMiddleware)
+
+    @app.get("/api/v1/reports")
+    def reports():
+        return {"ok": True}
+
+    client = TestClient(app, client=("198.51.100.10", 12345))
+    response = client.get("/api/v1/reports")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+
+def test_whitelist_enabled_with_empty_allowed_ips_denies(monkeypatch) -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.middleware import IPWhitelistMiddleware
+
+    monkeypatch.setattr("app.middleware.settings.ip_whitelist_enabled", True)
+    monkeypatch.setattr("app.middleware.settings.allowed_ips", "")
+
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(IPWhitelistMiddleware)
+
+    @app.get("/health")
+    def health():
+        return {"status": "ok"}
+
+    @app.get("/api/v1/reports")
+    def reports():
+        return {"ok": True}
+
+    client = TestClient(app, client=("127.0.0.1", 12345))
+    assert client.get("/health").status_code == 200
+    denied = client.get("/api/v1/reports")
+    assert denied.status_code == 403
+    assert denied.json()["message"] == "Access denied"
+
+
+def test_whitelist_enabled_enforces_allowed_ips(monkeypatch) -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.middleware import IPWhitelistMiddleware
+
+    monkeypatch.setattr("app.middleware.settings.ip_whitelist_enabled", True)
+    monkeypatch.setattr("app.middleware.settings.allowed_ips", "127.0.0.1")
+
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(IPWhitelistMiddleware)
+
+    @app.get("/docs")
+    def docs():
+        return {"ok": True}
+
+    @app.get("/api/v1/reports")
+    def reports():
+        return {"ok": True}
+
+    blocked = TestClient(app, client=("198.51.100.10", 12345))
+    assert blocked.get("/docs").status_code == 200
+    denied = blocked.get("/api/v1/reports")
+    assert denied.status_code == 403
+    assert denied.json()["message"] == "Access denied"
+
+    allowed = TestClient(app, client=("127.0.0.1", 12345))
+    assert allowed.get("/api/v1/reports").status_code == 200
+
+
 def test_allows_docker_host_despite_external_x_forwarded_for(monkeypatch) -> None:
     """ngrok on the host forwards X-Forwarded-For; Docker connects as 172.19.0.1."""
     from fastapi import FastAPI
@@ -42,6 +121,7 @@ def test_allows_docker_host_despite_external_x_forwarded_for(monkeypatch) -> Non
 
     from app.middleware import IPWhitelistMiddleware
 
+    monkeypatch.setattr("app.middleware.settings.ip_whitelist_enabled", True)
     monkeypatch.setattr("app.middleware.settings.allowed_ips", "172.16.0.0/12")
     monkeypatch.setattr("app.middleware.settings.trusted_proxy_ips", "172.16.0.0/12")
 

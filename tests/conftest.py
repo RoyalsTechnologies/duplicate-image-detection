@@ -9,6 +9,7 @@ os.environ.setdefault(
     "DATABASE_URL",
     f"postgresql+asyncpg://did:did@localhost:{_POSTGRES_PORT}/did",
 )
+os.environ.setdefault("IP_WHITELIST_ENABLED", "true")
 os.environ.setdefault("ALLOWED_IPS", "127.0.0.1,::1")
 os.environ.setdefault("TRUSTED_PROXY_IPS", "10.0.0.1")
 os.environ.setdefault("REDIS_URL", "")

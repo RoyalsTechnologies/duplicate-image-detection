@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     environment: str = "local"
     database_url: str
     redis_url: str = "redis://localhost:3061/0"
+    # When false (default), API access is open. When true, only ALLOWED_IPS may call
+    # non-public routes.
+    ip_whitelist_enabled: bool = False
     allowed_ips: str = ""
     trusted_proxy_ips: str = ""
     local_storage_dir: Path = Path("uploads")
