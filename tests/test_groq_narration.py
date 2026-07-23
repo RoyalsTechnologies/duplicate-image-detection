@@ -64,8 +64,14 @@ def test_narrate_image_with_groq_returns_caption(groq_settings: None) -> None:
     request = client.post.await_args
     assert request is not None
     payload = request.kwargs["json"]
-    assert payload["model"] == "meta-llama/llama-4-scout-17b-16e-instruct"
+    assert payload["model"] == "qwen/qwen3.6-27b"
+    assert payload["reasoning_effort"] == "none"
     assert "flooding" in payload["messages"][0]["content"][0]["text"]
+
+
+def test_extract_message_content_strips_think_blocks() -> None:
+    content = "<think>\ninternal notes\n</think>\nStanding water covers the road."
+    assert _extract_message_content(content) == "Standing water covers the road."
 
 
 def test_narrate_image_with_groq_returns_none_on_http_error(groq_settings: None) -> None:

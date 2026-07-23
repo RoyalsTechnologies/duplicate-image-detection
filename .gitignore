@@ -54,6 +54,8 @@ secrets.json
 ml/raw_images/
 ml/raw_images_flat/
 ml/raw_images_negative/
+ml/raw_images_clean/
+ml/raw_images_rejected/
 ml/automated_dataset/
 ml/cls_dataset/
 ml/runs/

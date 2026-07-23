@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -14,6 +15,7 @@ from app.images import prepare_image_for_vision_api
 logger = logging.getLogger(__name__)
 
 GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 NARRATION_PROMPT = """You describe photos of environmental and public infrastructure concerns.
 Write 2-4 factual sentences about what is visible: hazards, damage, waste, water, smoke, blocked drains, etc.
@@ -42,15 +44,18 @@ def _build_user_prompt(
 
 def _extract_message_content(content: object) -> str:
     if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
+        text = content.strip()
+    elif isinstance(content, list):
         text_parts = [
             str(block.get("text", "")).strip()
             for block in content
             if isinstance(block, dict) and block.get("type") == "text" and block.get("text")
         ]
-        return " ".join(text_parts).strip()
-    return str(content).strip()
+        text = " ".join(text_parts).strip()
+    else:
+        text = str(content).strip()
+    # Qwen thinking models may still emit <think>…</think> blocks.
+    return _THINK_BLOCK_RE.sub("", text).strip()
 
 
 async def narrate_image_with_groq(
@@ -93,6 +98,8 @@ async def narrate_image_with_groq(
         ],
         "temperature": 0.2,
         "max_completion_tokens": settings.groq_vision_max_tokens,
+        # Disable Qwen reasoning so the UI gets a clean caption, not <think> text.
+        "reasoning_effort": "none",
     }
 
     try:
@@ -102,7 +109,13 @@ async def narrate_image_with_groq(
                 headers={"Authorization": f"Bearer {settings.groq_api_key}"},
                 json=payload,
             )
-            response.raise_for_status()
+            if response.is_error:
+                logger.warning(
+                    "Groq image narration failed: %s %s",
+                    response.status_code,
+                    response.text[:300],
+                )
+                return None
             body = response.json()
             content = body["choices"][0]["message"]["content"]
             text = _extract_message_content(content)

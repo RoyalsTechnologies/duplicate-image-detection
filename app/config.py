@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     upload_rate_limit_per_minute: int = 20
     groq_api_key: str | None = None
     groq_vision_enabled: bool = True
-    groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_vision_model: str = "qwen/qwen3.6-27b"
     groq_vision_max_tokens: int = 256
     groq_vision_timeout_seconds: float = 20.0
     groq_narration_rate_limit_per_minute: int = 15

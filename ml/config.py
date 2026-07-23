@@ -18,10 +18,11 @@ RUNS_DIR = ML_ROOT / "runs"
 DEPLOY_DIR = ML_ROOT / "deployment"
 
 # Image-classification pipeline (robust alternative to noisy auto-labeled
-# detection). Each scraped query folder already implies its class, so no
-# per-image annotation is needed; a "none" negative class lets the model
-# reject uploads that are not a concern.
+# detection). Scraped Bing query folders are noisy; organize-clean filters
+# with CLIP and writes verified images into class-named folders.
 NEGATIVE_IMAGES_DIR = ML_ROOT / "raw_images_negative"
+CLEAN_IMAGES_DIR = ML_ROOT / "raw_images_clean"
+REJECTED_IMAGES_DIR = ML_ROOT / "raw_images_rejected"
 CLS_DATASET_DIR = ML_ROOT / "cls_dataset"
 CLS_RUNS_DIR = ML_ROOT / "cls_runs"
 CLS_BASE_MODEL = "yolo11n-cls.pt"
@@ -30,6 +31,17 @@ CLS_TRAIN_EPOCHS = 40
 CLS_VAL_SPLIT = 0.15
 NONE_CLASS_NAME = "none"
 NEGATIVE_IMAGES_PER_QUERY = 40
+
+# CLIP filter used by the organize-clean phase (open_clip ViT-B-32).
+CLEAN_CLIP_MODEL = "ViT-B-32"
+CLEAN_CLIP_PRETRAINED = "openai"
+# Concern images keep their Bing-folder class label. CLIP only removes junk:
+# corrupt files (expected score very low) or images where "none" clearly wins.
+CLEAN_CLIP_MIN_EXPECTED = 0.10
+CLEAN_CLIP_REJECT_NONE_MARGIN = 0.08
+# Negative scrape: reject if any concern class exceeds this AND beats none.
+CLEAN_CLIP_MIN_SCORE = 0.22
+CLEAN_CLIP_MARGIN = 0.02
 
 # Keep all model/tokenizer downloads inside the ml/ tree so runs work in
 # sandboxed or shared environments where the default system caches
@@ -55,7 +67,12 @@ def _configure_caches() -> None:
 _configure_caches()
 
 BASE_MODEL = "yolo11n.pt"
-IMAGES_PER_QUERY = 50
+# Scrape this many candidates per ConcernTarget; CLIP keeps only matches.
+IMAGES_PER_QUERY = 60
+# Minimum CLIP cosine for the expected class before an image may enter its folder.
+DOWNLOAD_CLIP_MIN_EXPECTED = 0.20
+# Expected class must beat the best non-concern prompt by at least this margin.
+DOWNLOAD_CLIP_MARGIN = 0.03
 TRAIN_EPOCHS = 30
 IMAGE_SIZE = 640
 
@@ -77,10 +94,15 @@ VALID_CLASS_NAMES = frozenset(
 class ConcernTarget:
     """A single concern type to scrape, auto-label, and train on.
 
+    Strict download rule: images scraped with `search_query` are stored in
+    `ml/raw_images/<class_name>/` — folder name is always `class_name`, never
+    the Bing query string.
+
     Attributes:
         search_query: Query sent to the image scraper.
         caption: Prompt GroundedSAM uses to detect and annotate the object.
-        class_name: YOLO class label; must exist in `VALID_CLASS_NAMES`.
+        class_name: Folder name and YOLO class label; must exist in
+            `VALID_CLASS_NAMES`.
     """
 
     search_query: str
@@ -88,26 +110,84 @@ class ConcernTarget:
     class_name: str
 
 
+# Photo-specific Bing queries. Vague phrases ("urban street flooding hazard")
+# return documents/product ads; keep these concrete and visual.
 TARGETS: tuple[ConcernTarget, ...] = (
-    ConcernTarget("urban street flooding hazard", "flood water on the street", "flooding"),
-    ConcernTarget("flooded road standing water", "flood water on the street", "flooding"),
-    ConcernTarget("pothole asphalt road damage", "pothole in the road", "pothole"),
-    ConcernTarget("cracked damaged road surface", "pothole in the road", "pothole"),
-    ConcernTarget("garbage pile on street", "pile of garbage or rubbish", "refuse_dump"),
-    ConcernTarget("illegal dumping trash heap", "pile of garbage or rubbish", "refuse_dump"),
-    ConcernTarget("overflowing waste bin", "overflowing garbage bin", "refuse_dump"),
-    ConcernTarget("blocked drainage gutter waste", "blocked drain or gutter", "blocked_drain"),
-    ConcernTarget("open sewage drain", "blocked drain or gutter", "blocked_drain"),
-    ConcernTarget("factory smoke air pollution", "smoke or air pollution", "pollution"),
-    ConcernTarget("burning waste smoke", "smoke or air pollution", "pollution"),
     ConcernTarget(
-        "broken street light pole", "broken public infrastructure", "broken_public_facility"
+        "photo flooded city street cars underwater",
+        "flood water on the street",
+        "flooding",
     ),
     ConcernTarget(
-        "fallen electricity pole", "broken public infrastructure", "broken_public_facility"
+        "photograph flooded road standing water vehicles",
+        "flood water on the street",
+        "flooding",
     ),
-    ConcernTarget("dirty public toilet sanitation", "dirty unsanitary public area", "sanitation"),
-    ConcernTarget("open defecation dirty area", "dirty unsanitary public area", "sanitation"),
+    ConcernTarget(
+        "close up photo deep pothole asphalt road",
+        "pothole in the road",
+        "pothole",
+    ),
+    ConcernTarget(
+        "photograph cracked broken asphalt road hole",
+        "pothole in the road",
+        "pothole",
+    ),
+    ConcernTarget(
+        "photo pile of garbage trash on street",
+        "pile of garbage or rubbish",
+        "refuse_dump",
+    ),
+    ConcernTarget(
+        "photograph illegal dumping trash heap outdoors",
+        "pile of garbage or rubbish",
+        "refuse_dump",
+    ),
+    ConcernTarget(
+        "photo overflowing garbage dumpster street",
+        "overflowing garbage bin",
+        "refuse_dump",
+    ),
+    ConcernTarget(
+        "photo clogged storm drain gutter debris street",
+        "blocked drain or gutter",
+        "blocked_drain",
+    ),
+    ConcernTarget(
+        "photograph open sewer drain dirty water street",
+        "blocked drain or gutter",
+        "blocked_drain",
+    ),
+    ConcernTarget(
+        "photo factory chimney black smoke air pollution",
+        "smoke or air pollution",
+        "pollution",
+    ),
+    ConcernTarget(
+        "photograph burning trash dump thick smoke outdoors",
+        "smoke or air pollution",
+        "pollution",
+    ),
+    ConcernTarget(
+        "photo broken bent street light pole road",
+        "broken public infrastructure",
+        "broken_public_facility",
+    ),
+    ConcernTarget(
+        "photograph fallen utility electricity pole street",
+        "broken public infrastructure",
+        "broken_public_facility",
+    ),
+    ConcernTarget(
+        "photo dirty filthy public toilet latrine outdoors",
+        "dirty unsanitary public area",
+        "sanitation",
+    ),
+    ConcernTarget(
+        "photograph unsanitary open defecation area outdoors",
+        "dirty unsanitary public area",
+        "sanitation",
+    ),
 )
 
 
@@ -158,9 +238,75 @@ NEGATIVE_QUERIES: tuple[str, ...] = (
 
 
 def query_to_class() -> dict[str, str]:
-    """Map each scraped query folder name to its classification class.
+    """Map each ConcernTarget search_query to its class_name.
+
+    Downloads no longer use query-named folders; images live in
+    `raw_images/<class_name>/`. This map remains for tooling that still
+    references the original Bing query string.
 
     Returns:
-        A dict from `search_query` (the `raw_images` subfolder name) to class.
+        A dict from `search_query` to `class_name`.
     """
     return {target.search_query: target.class_name for target in TARGETS}
+
+
+# CLIP text prompts used to sort scraped images into class folders.
+# Keep prompts concrete and visual so Bing noise (selfies, ads, game art)
+# scores higher on NON_CONCERN_PROMPTS and is rejected.
+CLASS_PROMPTS: dict[str, tuple[str, ...]] = {
+    "flooding": (
+        "flooded road or street with standing water",
+        "urban flooding hazard on a road",
+        "stagnant flood water covering pavement",
+    ),
+    "pothole": (
+        "pothole in asphalt road surface",
+        "cracked damaged road pavement",
+        "broken road surface hole",
+    ),
+    "refuse_dump": (
+        "pile of garbage or rubbish on the street",
+        "illegal dumping trash heap outdoors",
+        "overflowing waste bin with garbage",
+    ),
+    "blocked_drain": (
+        "blocked drainage gutter with waste",
+        "open sewage drain in a street",
+        "clogged storm drain with debris",
+    ),
+    "pollution": (
+        "factory smoke air pollution",
+        "burning waste smoke outdoors",
+        "thick smoke air pollution in a city",
+    ),
+    "broken_public_facility": (
+        "broken street light pole",
+        "fallen electricity pole on a street",
+        "damaged public infrastructure outdoors",
+    ),
+    "sanitation": (
+        "dirty unsanitary public toilet area",
+        "filthy public sanitation problem outdoors",
+        "dirty public area with sanitation hazard",
+    ),
+}
+
+NON_CONCERN_PROMPTS: tuple[str, ...] = (
+    "selfie portrait of a person",
+    "food meal on a plate",
+    "pet cat or dog photo",
+    "indoor home or office scene",
+    "product advertisement or shopping photo",
+    "electronic device product photo white background",
+    "scanned paper document or form",
+    "bank statement or administrative certificate",
+    "wallpaper texture or interior decor sample",
+    "rally race car motorsport splash",
+    "video game cover or digital artwork",
+    "nature landscape without damage",
+    "DIY craft project or fridge magnets",
+    "educational infographic or chart",
+    "statistics or data visualization diagram",
+    "poster or meme with text",
+    "random personal photo",
+)
